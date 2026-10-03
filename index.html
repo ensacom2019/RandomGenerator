@@ -18,8 +18,29 @@
     <h1>룰렛 돌리기</h1>
     <div class="toolbar">
       <button id="btnAdd" class="tool">항목 추가</button>
+      <button id="btnBulk" class="tool">한번에 넣기</button>
       <button id="btnRemove" class="tool">항목 제거</button>
       <button id="btnReset" class="tool">리셋</button>
+    </div>
+
+    <!-- 룰렛 일괄 입력 모달 -->
+    <div id="bulkModal" class="bulk-modal" hidden>
+      <div class="bulk-card">
+        <div class="bulk-title">📝 항목 한번에 넣기</div>
+        <p class="bulk-desc">
+          쉼표(,) 또는 줄바꿈으로 구분하여 입력하세요.<br>
+          모든 항목이 <b>동일한 비율(확률)</b>로 적용됩니다.
+        </p>
+        <textarea id="bulkInput" class="bulk-input" placeholder="예시: 사과, 바나나, 딸기, 포도, 수박, 복숭아" rows="6"></textarea>
+        <div class="bulk-mode-wrap">
+          <label><input type="radio" name="bulkMode" value="replace" checked> 기존 항목 바꾸기</label>
+          <label><input type="radio" name="bulkMode" value="append"> 기존 항목에 추가하기</label>
+        </div>
+        <div class="bulk-actions">
+          <button id="btnBulkCancel" class="tool" type="button">취소</button>
+          <button id="btnBulkApply" class="primary" type="button">적용하기</button>
+        </div>
+      </div>
     </div>
 
     <main>

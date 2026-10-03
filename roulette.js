@@ -256,6 +256,70 @@
     listEl.scrollTop = listEl.scrollHeight;
   });
 
+  // ---------- 한번에 넣기 (쉼표/줄바꿈 구분, 동일 가중치) ----------
+  const bulkModal = document.getElementById("bulkModal");
+  const bulkInput = document.getElementById("bulkInput");
+  const btnBulk = document.getElementById("btnBulk");
+  const btnBulkCancel = document.getElementById("btnBulkCancel");
+  const btnBulkApply = document.getElementById("btnBulkApply");
+
+  function openBulkModal() {
+    if (mode === "spinning" || mode === "stopping") return;
+    bulkModal.hidden = false;
+    bulkInput.focus();
+  }
+
+  function closeBulkModal() {
+    bulkModal.hidden = true;
+  }
+
+  btnBulk.addEventListener("click", openBulkModal);
+  btnBulkCancel.addEventListener("click", closeBulkModal);
+  bulkModal.addEventListener("click", (e) => {
+    if (e.target === bulkModal) closeBulkModal();
+  });
+
+  btnBulkApply.addEventListener("click", () => {
+    const raw = bulkInput.value || "";
+    const names = raw
+      .split(/[,\n]+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    if (names.length === 0) {
+      alert("최소 1개 이상의 항목 이름을 입력해 주세요.");
+      bulkInput.focus();
+      return;
+    }
+
+    const newItems = names.map((name) => ({
+      name,
+      color: randomColor(),
+      weight: 1, // 모두 같은 확률(가중치 1)
+    }));
+
+    const modeChoice = document.querySelector('input[name="bulkMode"]:checked')?.value || "replace";
+    if (modeChoice === "replace") {
+      items = newItems;
+    } else {
+      items = items.concat(newItems);
+    }
+
+    bulkInput.value = "";
+    closeBulkModal();
+    resetResult();
+    saveItems();
+    renderList();
+    draw();
+    listEl.scrollTop = 0;
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (!bulkModal.hidden && e.key === "Escape") {
+      closeBulkModal();
+    }
+  });
+
   document.getElementById("btnRemove").addEventListener("click", () => {
     const checked = [...listEl.querySelectorAll('input[type="checkbox"]:checked')]
       .map((c) => Number(c.dataset.index));

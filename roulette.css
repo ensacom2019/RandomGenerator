@@ -124,3 +124,49 @@ button:disabled { opacity: .4; cursor: not-allowed !important; }
 
 /* 회전 중에는 항목 편집 잠금 */
 .locked #list, .locked .toolbar { pointer-events: none; opacity: .6; }
+
+/* 룰렛 항목 한번에 넣기 모달 */
+.bulk-modal {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex; align-items: center; justify-content: center;
+}
+.bulk-modal[hidden] { display: none !important; }
+.bulk-card {
+  width: 480px; max-width: 90vw;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  padding: 24px;
+  text-align: left;
+  animation: bulkPop 0.25s ease-out;
+}
+@keyframes bulkPop {
+  from { transform: scale(0.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.bulk-title {
+  font-size: 20px; font-weight: bold; color: #111; margin-bottom: 6px;
+}
+.bulk-desc {
+  font-size: 13px; color: #555; line-height: 1.5; margin: 0 0 12px;
+}
+.bulk-input {
+  width: 100%; box-sizing: border-box;
+  padding: 10px 12px;
+  font-size: 15px; font-family: inherit; line-height: 1.5;
+  border: 1px solid #999; border-radius: 6px;
+  resize: vertical;
+}
+.bulk-input:focus {
+  outline: none; border-color: #0a7cff; box-shadow: 0 0 0 3px rgba(10, 124, 255, 0.2);
+}
+.bulk-mode-wrap {
+  display: flex; gap: 18px; margin: 14px 0 18px; font-size: 14px; font-weight: 500; color: #333;
+}
+.bulk-mode-wrap label {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+}
+.bulk-actions {
+  display: flex; justify-content: flex-end; gap: 8px;
+}
