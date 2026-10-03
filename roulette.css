@@ -43,7 +43,20 @@ h1 { margin: 4px 0 10px; font-size: 28px; }
 .placeholder { margin-top: 80px; font-size: 18px; color: #888; }
 
 
-.toolbar { margin-bottom: 14px; }
+.toolbar {
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.toolbar-sep {
+  width: 1px;
+  height: 20px;
+  background: #bbb;
+  margin: 0 4px;
+}
 button.tool {
   padding: 5px 9px;
   font-size: 15px;
@@ -54,6 +67,42 @@ button.tool {
   cursor: pointer;
 }
 button.tool:hover { background: #e0e0e0; }
+button.preset-btn-main {
+  background: #e8f3ff;
+  border-color: #0a7cff;
+  color: #0a7cff;
+}
+button.preset-btn-main:hover {
+  background: #d4e8ff;
+}
+
+/* 프리셋 빠른 선택 바 */
+.preset-quick-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+.preset-quick-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: bold;
+  color: #444;
+}
+.preset-select {
+  padding: 4px 8px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  border: 1px solid #777;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
 
 main {
   display: flex;
@@ -170,3 +219,100 @@ button:disabled { opacity: .4; cursor: not-allowed !important; }
 .bulk-actions {
   display: flex; justify-content: flex-end; gap: 8px;
 }
+
+/* 프리셋 관리 모달 */
+.preset-modal {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex; align-items: center; justify-content: center;
+}
+.preset-modal[hidden] { display: none !important; }
+.preset-card {
+  width: 620px; max-width: 92vw; max-height: 85vh;
+  display: flex; flex-direction: column;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  padding: 20px 24px;
+  text-align: left;
+  animation: bulkPop 0.25s ease-out;
+}
+.preset-modal-header {
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid #eee; padding-bottom: 10px;
+}
+.preset-title {
+  font-size: 20px; font-weight: bold; color: #111;
+}
+.preset-close-btn {
+  background: none; border: none; font-size: 24px; color: #888; cursor: pointer;
+}
+.preset-close-btn:hover { color: #111; }
+.preset-desc {
+  font-size: 13px; color: #666; line-height: 1.5; margin: 8px 0 12px;
+}
+.preset-list {
+  flex: 1; overflow-y: auto;
+  border: 1px solid #ddd; border-radius: 6px;
+  padding: 8px;
+  background: #fafafa;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.preset-row {
+  display: flex; align-items: center; gap: 10px;
+  background: #fff; border: 1px solid #ccc; border-radius: 6px;
+  padding: 8px 12px;
+  transition: border-color 0.15s;
+}
+.preset-row:hover {
+  border-color: #0a7cff;
+}
+.preset-slot-num {
+  font-size: 13px; font-weight: bold; color: #fff;
+  background: #0a7cff; padding: 3px 8px; border-radius: 12px;
+  flex: none;
+}
+.preset-info {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.preset-name-wrap {
+  display: flex; align-items: center; gap: 6px;
+}
+.preset-name-input {
+  font-size: 15px; font-weight: bold; font-family: inherit;
+  border: 1px solid transparent; border-radius: 4px;
+  padding: 2px 4px; color: #222; width: 180px;
+}
+.preset-name-input:hover {
+  border-color: #bbb;
+}
+.preset-name-input:focus {
+  outline: none; border-color: #0a7cff; background: #fff;
+}
+.preset-preview {
+  font-size: 12px; color: #777;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.preset-preview.empty {
+  color: #aaa; font-style: italic;
+}
+.preset-row-actions {
+  display: flex; gap: 6px; flex: none;
+}
+.preset-btn-sm {
+  padding: 4px 8px; font-size: 13px; font-weight: bold; font-family: inherit;
+  border-radius: 4px; cursor: pointer; border: 1px solid #ccc; background: #f0f0f0;
+}
+.preset-btn-sm:hover:not(:disabled) { background: #e0e0e0; }
+.preset-btn-sm:disabled { opacity: 0.4; cursor: not-allowed; }
+.preset-btn-load {
+  color: #fff; background: #0a7cff; border-color: #0066dc;
+}
+.preset-btn-load:hover:not(:disabled) {
+  background: #0066dc;
+}
+.preset-actions {
+  display: flex; justify-content: flex-end; padding-top: 12px;
+}
+

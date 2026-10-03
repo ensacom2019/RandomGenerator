@@ -21,6 +21,18 @@
       <button id="btnBulk" class="tool">한번에 넣기</button>
       <button id="btnRemove" class="tool">항목 제거</button>
       <button id="btnReset" class="tool">리셋</button>
+      <span class="toolbar-sep"></span>
+      <button id="btnPresetManage" class="tool preset-btn-main">💾 프리셋 (1~10)</button>
+    </div>
+
+    <!-- 프리셋 빠른 선택 바 -->
+    <div class="preset-quick-bar">
+      <label class="preset-quick-label">
+        <span>프리셋 슬롯:</span>
+        <select id="presetQuickSelect" class="preset-select"></select>
+      </label>
+      <button id="btnQuickLoad" class="tool" type="button">불러오기</button>
+      <button id="btnQuickSave" class="tool" type="button">현재 룰렛 저장</button>
     </div>
 
     <!-- 룰렛 일괄 입력 모달 -->
@@ -39,6 +51,23 @@
         <div class="bulk-actions">
           <button id="btnBulkCancel" class="tool" type="button">취소</button>
           <button id="btnBulkApply" class="primary" type="button">적용하기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 룰렛 프리셋 관리 모달 -->
+    <div id="presetModal" class="preset-modal" hidden>
+      <div class="preset-card">
+        <div class="preset-modal-header">
+          <div class="preset-title">💾 룰렛 프리셋 관리 (1~10)</div>
+          <button id="btnPresetModalClose" class="preset-close-btn" type="button">&times;</button>
+        </div>
+        <p class="preset-desc">
+          자주 쓰는 룰렛 항목을 최대 10개까지 슬롯에 저장하고 언제든 불러올 수 있습니다.
+        </p>
+        <div id="presetList" class="preset-list"></div>
+        <div class="preset-actions">
+          <button id="btnPresetModalOk" class="primary" type="button">닫기</button>
         </div>
       </div>
     </div>

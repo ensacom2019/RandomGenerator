@@ -430,8 +430,221 @@
     requestAnimationFrame(frame);
   }
 
+  // ---------- 프리셋 (1~10 슬롯) 관리 ----------
+  const PRESET_KEY = "roulette_presets_v1";
+  const PRESET_COUNT = 10;
+  let presets = loadPresets();
+
+  function defaultPresets() {
+    const arr = [];
+    for (let i = 1; i <= PRESET_COUNT; i++) {
+      arr.push({
+        id: i,
+        title: `프리셋 ${i}`,
+        items: null,
+      });
+    }
+    return arr;
+  }
+
+  function loadPresets() {
+    try {
+      const raw = localStorage.getItem(PRESET_KEY);
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr) && arr.length === PRESET_COUNT) return arr;
+      }
+    } catch (e) { /* ignore */ }
+    return defaultPresets();
+  }
+
+  function savePresets() {
+    try {
+      localStorage.setItem(PRESET_KEY, JSON.stringify(presets));
+    } catch (e) { /* ignore */ }
+    updatePresetQuickSelect();
+  }
+
+  const presetQuickSelect = document.getElementById("presetQuickSelect");
+  const btnQuickLoad = document.getElementById("btnQuickLoad");
+  const btnQuickSave = document.getElementById("btnQuickSave");
+  const btnPresetManage = document.getElementById("btnPresetManage");
+  const presetModal = document.getElementById("presetModal");
+  const presetList = document.getElementById("presetList");
+  const btnPresetModalClose = document.getElementById("btnPresetModalClose");
+  const btnPresetModalOk = document.getElementById("btnPresetModalOk");
+
+  function updatePresetQuickSelect() {
+    const curVal = presetQuickSelect.value;
+    presetQuickSelect.innerHTML = "";
+    presets.forEach((p) => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      const countText = p.items && p.items.length > 0 ? `(${p.items.length}개)` : "[비어있음]";
+      opt.textContent = `${p.id}. ${p.title} ${countText}`;
+      presetQuickSelect.appendChild(opt);
+    });
+    if (curVal) presetQuickSelect.value = curVal;
+  }
+
+  function saveToSlot(slotId, newTitle) {
+    const slot = presets.find((p) => p.id === slotId);
+    if (!slot) return;
+    if (newTitle !== undefined && newTitle.trim().length > 0) {
+      slot.title = newTitle.trim();
+    }
+    slot.items = JSON.parse(JSON.stringify(items));
+    savePresets();
+    renderPresetModalList();
+  }
+
+  function loadFromSlot(slotId) {
+    if (mode === "spinning" || mode === "stopping") {
+      alert("회전 중에는 프리셋을 불러올 수 없습니다.");
+      return;
+    }
+    const slot = presets.find((p) => p.id === slotId);
+    if (!slot || !slot.items || slot.items.length === 0) {
+      alert(`프리셋 ${slotId}번 슬롯이 비어 있습니다.\n'현재 룰렛 저장'을 눌러 항목을 먼저 저장해 주세요.`);
+      return;
+    }
+    items = JSON.parse(JSON.stringify(slot.items));
+    resetResult();
+    saveItems();
+    renderList();
+    draw();
+    listEl.scrollTop = 0;
+  }
+
+  function clearSlot(slotId) {
+    const slot = presets.find((p) => p.id === slotId);
+    if (!slot) return;
+    if (!confirm(`'${slot.title}' 프리셋을 비우시겠습니까?`)) return;
+    slot.items = null;
+    savePresets();
+    renderPresetModalList();
+  }
+
+  function renderPresetModalList() {
+    presetList.innerHTML = "";
+    presets.forEach((p) => {
+      const row = document.createElement("div");
+      row.className = "preset-row";
+
+      const num = document.createElement("span");
+      num.className = "preset-slot-num";
+      num.textContent = `#${p.id}`;
+
+      const info = document.createElement("div");
+      info.className = "preset-info";
+
+      const nameWrap = document.createElement("div");
+      nameWrap.className = "preset-name-wrap";
+
+      const nameInput = document.createElement("input");
+      nameInput.type = "text";
+      nameInput.className = "preset-name-input";
+      nameInput.value = p.title;
+      nameInput.placeholder = `프리셋 ${p.id}`;
+      nameInput.title = "프리셋 이름을 수정할 수 있습니다";
+      nameInput.addEventListener("change", () => {
+        p.title = nameInput.value.trim() || `프리셋 ${p.id}`;
+        savePresets();
+      });
+
+      nameWrap.appendChild(nameInput);
+
+      const preview = document.createElement("div");
+      const hasItems = p.items && p.items.length > 0;
+      preview.className = "preset-preview" + (hasItems ? "" : " empty");
+      if (hasItems) {
+        const itemNames = p.items.map((it) => it.name).join(", ");
+        preview.textContent = `항목 ${p.items.length}개: ${itemNames}`;
+        preview.title = itemNames;
+      } else {
+        preview.textContent = "(비어 있음 - 현재 룰렛을 저장해 보세요)";
+      }
+
+      info.append(nameWrap, preview);
+
+      const actions = document.createElement("div");
+      actions.className = "preset-row-actions";
+
+      const btnLoad = document.createElement("button");
+      btnLoad.type = "button";
+      btnLoad.className = "preset-btn-sm preset-btn-load";
+      btnLoad.textContent = "불러오기";
+      btnLoad.disabled = !hasItems;
+      btnLoad.addEventListener("click", () => {
+        loadFromSlot(p.id);
+        closePresetModal();
+      });
+
+      const btnSave = document.createElement("button");
+      btnSave.type = "button";
+      btnSave.className = "preset-btn-sm";
+      btnSave.textContent = "현재 저장";
+      btnSave.title = "현재 룰렛 항목을 이 슬롯에 저장합니다";
+      btnSave.addEventListener("click", () => {
+        saveToSlot(p.id, nameInput.value);
+      });
+
+      const btnClear = document.createElement("button");
+      btnClear.type = "button";
+      btnClear.className = "preset-btn-sm";
+      btnClear.textContent = "비우기";
+      btnClear.disabled = !hasItems;
+      btnClear.addEventListener("click", () => {
+        clearSlot(p.id);
+      });
+
+      actions.append(btnLoad, btnSave, btnClear);
+      row.append(num, info, actions);
+      presetList.appendChild(row);
+    });
+  }
+
+  function openPresetModal() {
+    renderPresetModalList();
+    presetModal.hidden = false;
+  }
+
+  function closePresetModal() {
+    presetModal.hidden = true;
+  }
+
+  btnPresetManage.addEventListener("click", openPresetModal);
+  btnPresetModalClose.addEventListener("click", closePresetModal);
+  btnPresetModalOk.addEventListener("click", closePresetModal);
+  presetModal.addEventListener("click", (e) => {
+    if (e.target === presetModal) closePresetModal();
+  });
+
+  btnQuickLoad.addEventListener("click", () => {
+    const slotId = Number(presetQuickSelect.value) || 1;
+    loadFromSlot(slotId);
+  });
+
+  btnQuickSave.addEventListener("click", () => {
+    const slotId = Number(presetQuickSelect.value) || 1;
+    const curSlot = presets.find((p) => p.id === slotId);
+    const defaultName = curSlot ? curSlot.title : `프리셋 ${slotId}`;
+    const newTitle = prompt(`프리셋 #${slotId}에 저장할 이름을 입력하세요:`, defaultName);
+    if (newTitle !== null) {
+      saveToSlot(slotId, newTitle);
+      alert(`프리셋 #${slotId} ('${newTitle.trim() || defaultName}')에 현재 룰렛 항목이 저장되었습니다.`);
+    }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (!presetModal.hidden && e.key === "Escape") {
+      closePresetModal();
+    }
+  });
+
   // ---------- 시작 ----------
   TabManager.register({ id: "roulette", label: "룰렛" });
+  updatePresetQuickSelect();
   renderList();
   updateButtons();
   draw();
