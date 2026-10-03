@@ -1,0 +1,126 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 16px;
+  background: #f0f0f0;
+  font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  color: #222;
+  text-align: center;
+}
+
+h1 { margin: 4px 0 10px; font-size: 28px; }
+
+/* 상단 탭 */
+.tab-bar {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin: -4px 0 14px;
+  border-bottom: 2px solid #ccc;
+}
+.tab-btn {
+  padding: 10px 28px;
+  font-size: 16px;
+  font-weight: bold;
+  font-family: inherit;
+  color: #555;
+  background: #e2e2e2;
+  border: 1px solid #ccc;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  margin-bottom: -2px;
+}
+.tab-btn:hover { background: #ececec; }
+.tab-btn.active {
+  color: #0a7cff;
+  background: #fff;
+  border-color: #ccc;
+  border-bottom: 2px solid #fff;
+}
+.tab-panel[hidden] { display: none; }
+.placeholder { margin-top: 80px; font-size: 18px; color: #888; }
+
+
+.toolbar { margin-bottom: 14px; }
+button.tool {
+  padding: 5px 9px;
+  font-size: 15px;
+  font-weight: bold;
+  background: #efefef;
+  border: 1px solid #555;
+  border-radius: 3px;
+  cursor: pointer;
+}
+button.tool:hover { background: #e0e0e0; }
+
+main {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+/* 룰렛 */
+.wheel-wrap { position: relative; width: 520px; height: 520px; }
+.wheel-wrap canvas { width: 520px; height: 520px; display: block; }
+.pointer {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 11px solid transparent;
+  border-right: 11px solid transparent;
+  border-top: 22px solid red;
+  z-index: 2;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,.4));
+}
+
+/* 항목 목록 */
+.list-wrap { width: 460px; text-align: left; }
+#list {
+  max-height: 520px;
+  overflow-y: auto;
+  background: #fff;
+  padding: 8px;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.row input[type="checkbox"] { width: 18px; height: 18px; }
+.row input.name { flex: 1; min-width: 0; padding: 4px 6px; border: 1px solid #777; font-size: 14px; }
+.row input[type="color"] { width: 28px; height: 24px; padding: 0; border: 1px solid #777; background: none; }
+.row input.pct { width: 78px; padding: 4px 6px; border: 1px solid #ccc; background: #f2f2f2; font-size: 14px; }
+.row button {
+  width: 26px; height: 26px;
+  border: 1px solid #555; border-radius: 3px;
+  background: #efefef; cursor: pointer; font-weight: bold;
+}
+.row button:hover { background: #ddd; }
+.sum-info { margin-top: 6px; font-size: 12px; color: #666; }
+
+/* 결과 / 컨트롤 */
+.result { margin: 18px 0 8px; font-size: 24px; font-weight: bold; min-height: 34px; }
+.controls { display: flex; justify-content: center; gap: 10px; }
+button.primary {
+  padding: 10px 20px;
+  font-size: 15px;
+  font-weight: bold;
+  color: #fff;
+  background: #0a7cff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+button.primary.danger { background: #e53935; }
+button.primary:hover:not(:disabled) { filter: brightness(1.1); }
+button:disabled { opacity: .4; cursor: not-allowed !important; }
+
+/* 회전 중에는 항목 편집 잠금 */
+.locked #list, .locked .toolbar { pointer-events: none; opacity: .6; }

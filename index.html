@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="룰렛, 핀볼, 추첨으로 즐기는 랜덤 뽑기 생성기">
+  <title>랜덤 생성기 - 룰렛 / 핀볼 / 추첨</title>
+  <link rel="stylesheet" href="roulette.css">
+  <link rel="stylesheet" href="pinball.css">
+  <link rel="stylesheet" href="draw.css">
+</head>
+<body>
+  <!-- 상단 탭 바 (버튼은 tabs.js 가 register 된 탭 기준으로 자동 생성) -->
+  <nav id="tabBar" class="tab-bar" role="tablist"></nav>
+
+  <!-- ========== 룰렛 ========== -->
+  <section id="panel-roulette" class="tab-panel" role="tabpanel">
+    <h1>룰렛 돌리기</h1>
+    <div class="toolbar">
+      <button id="btnAdd" class="tool">항목 추가</button>
+      <button id="btnRemove" class="tool">항목 제거</button>
+      <button id="btnReset" class="tool">리셋</button>
+    </div>
+
+    <main>
+      <section class="wheel-wrap">
+        <div class="pointer"></div>
+        <canvas id="wheel" width="520" height="520"></canvas>
+      </section>
+
+      <section class="list-wrap">
+        <div id="list"></div>
+        <div id="sumInfo" class="sum-info"></div>
+      </section>
+    </main>
+
+    <div id="result" class="result">&nbsp;</div>
+
+    <div class="controls">
+      <button id="btnStart" class="primary">시작</button>
+      <button id="btnStop" class="primary">정지</button>
+      <button id="btnInstant" class="primary danger">즉시 정지</button>
+    </div>
+  </section>
+
+  <!-- ========== 핀볼 ========== -->
+  <section id="panel-pinball" class="tab-panel" role="tabpanel" hidden></section>
+
+  <!-- ========== 뽑기 ========== -->
+  <section id="panel-draw" class="tab-panel" role="tabpanel" hidden></section>
+
+  <!--
+    새 탭 추가 방법:
+    1) 위에 <section id="panel-새id" class="tab-panel" hidden></section> 추가
+    2) 새 스크립트에서 TabManager.register({ id: "새id", label: "표시 이름" }) 호출
+    3) 아래에 <script src="새스크립트.js"> 추가 (스크립트 순서 = 탭 순서)
+  -->
+  <script src="tabs.js"></script>
+  <script src="roulette.js"></script>
+  <script src="pinball-engine.js"></script>
+  <script src="pinball.js"></script>
+  <script src="draw.js"></script>
+</body>
+</html>
