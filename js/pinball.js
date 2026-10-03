@@ -319,19 +319,42 @@
       if (s.moving) {
         ctx.beginPath();
         ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2);
-        ctx.strokeStyle = "rgba(255, 120, 60, 0.35)";
-        ctx.lineWidth = s.t * 2 + 6; ctx.stroke();
-        ctx.strokeStyle = "#ffb070";
-        ctx.lineWidth = s.t * 2; ctx.stroke();
+        if (s.fast) {
+          ctx.strokeStyle = "rgba(255, 40, 40, 0.45)";
+          ctx.lineWidth = s.t * 2 + 10; ctx.stroke();
+          ctx.strokeStyle = "#ffdd33";
+          ctx.lineWidth = s.t * 2; ctx.stroke();
+        } else {
+          ctx.strokeStyle = "rgba(255, 120, 60, 0.35)";
+          ctx.lineWidth = s.t * 2 + 6; ctx.stroke();
+          ctx.strokeStyle = "#ffb070";
+          ctx.lineWidth = s.t * 2; ctx.stroke();
+        }
       } else if (s.x1 === s.x2 && s.y1 === s.y2) {
         ctx.beginPath();
         ctx.arc(s.x1, s.y1, s.t, 0, Math.PI * 2);
-        if (s.bumper) {
+        if (s.super) {
+          // 슈퍼 범퍼: 강렬한 네온 오렌지 & 옐로우 더블 링
+          ctx.fillStyle = "#ff5500"; ctx.fill();
+          ctx.lineWidth = 4; ctx.strokeStyle = "#ffe600"; ctx.stroke();
+          // 내부 코어
+          ctx.beginPath();
+          ctx.arc(s.x1, s.y1, Math.max(3, s.t * 0.45), 0, Math.PI * 2);
+          ctx.fillStyle = "#ffffff"; ctx.fill();
+        } else if (s.bumper) {
           ctx.fillStyle = "#ff4fa0"; ctx.fill();
           ctx.lineWidth = 3; ctx.strokeStyle = "rgba(255,255,255,.8)"; ctx.stroke();
         } else {
           ctx.fillStyle = "#fff"; ctx.fill();
         }
+      } else if (s.super && s.bumper) {
+        // 바운스 월 (고탄성 반사벽)
+        ctx.beginPath();
+        ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2);
+        ctx.strokeStyle = "rgba(255, 100, 0, 0.45)";
+        ctx.lineWidth = 14; ctx.stroke();
+        ctx.strokeStyle = "#ffbb00";
+        ctx.lineWidth = 6; ctx.stroke();
       } else {
         glowLine(s.x1, s.y1, s.x2, s.y2, s.gate ? 4 : 3);
       }

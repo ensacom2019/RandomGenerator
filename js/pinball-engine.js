@@ -6,7 +6,7 @@
   const GATE_Y = 330;       // 시작 게이트(바닥) 높이
   const R = 10;             // 구슬 반지름
   const GRAVITY = 1100;
-  const MAXV = 1100;
+  const MAXV = 1350;
   const SUB = 4;            // 프레임당 물리 서브스텝 수
   const BAND = 100;         // 충돌 후보 탐색용 높이 구간
   const FRICTION = 0.9992;  // 접촉 시 접선 속도 감쇠
@@ -169,6 +169,61 @@
         return curY;
       },
     },
+    {
+      id: "chaos",
+      name: "익스트림 바운스 (카오스)",
+      build(b) {
+        let curY = 420;
+
+        // 1구역: 오프닝 슈퍼 바운스 & 점프대 (시작부터 폭발적으로 사방으로 튕겨 날아감)
+        b.seg(0, curY + 60, 240, curY + 140);
+        b.seg(W, curY + 60, W - 240, curY + 140);
+        b.superBumper(400, curY + 130, 32, 920);
+        b.superBumper(260, curY + 210, 24, 860);
+        b.superBumper(540, curY + 210, 24, 860);
+        curY += 300;
+
+        // 2구역: 고속 4연속 트윈 해머 (Fast Spinners) - 닿는 구슬을 허공과 벽으로 맹렬하게 날려버림
+        b.bounceWall(0, curY, 70, curY + 220, 850);
+        b.bounceWall(W, curY, W - 70, curY + 220, 850);
+        b.fastSpinner(250, curY + 80, 75, 4.6);
+        b.fastSpinner(550, curY + 80, 75, -4.6);
+        b.fastSpinner(400, curY + 230, 85, 4.8);
+        b.superBumper(170, curY + 220, 24, 880);
+        b.superBumper(630, curY + 220, 24, 880);
+        curY += 360;
+
+        // 3구역: 핀볼 팝 범퍼 클러스터 (지그재그 14개 슈퍼 범퍼의 핑퐁 연속 반사)
+        for (let r = 0; r < 4; r++) {
+          const y = curY + r * 90;
+          const isEven = r % 2 === 0;
+          const xs = isEven ? [140, 310, 490, 660] : [220, 400, 580];
+          xs.forEach((x) => b.superBumper(x, y, 22, 880));
+          // 벽면 반사 패드
+          b.bounceWall(0, y - 20, 45, y + 40, 820);
+          b.bounceWall(W, y - 20, W - 45, y + 40, 820);
+        }
+        curY += 4 * 90 + 40;
+
+        // 4구역: 고속 점프 런치 램프 (슬라이딩 후 공중으로 날아올라 슈퍼 범퍼에 다이빙)
+        b.seg(0, curY, 520, curY + 120);
+        b.superBumper(580, curY + 100, 28, 950);
+        curY += 190;
+        b.seg(W, curY, 280, curY + 120);
+        b.superBumper(220, curY + 100, 28, 950);
+        curY += 210;
+
+        // 5구역: 파이널 카오스 휠 & 메가 범퍼 (골인 직전 대역전극)
+        b.fastSpinner(220, curY + 80, 70, -5.2);
+        b.fastSpinner(580, curY + 80, 70, 5.2);
+        b.superBumper(400, curY + 110, 32, 980);
+        b.superBumper(290, curY + 230, 22, 880);
+        b.superBumper(510, curY + 230, 22, 880);
+        curY += 330;
+
+        return curY;
+      },
+    },
   ];
 
   function buildMap(mapId) {
@@ -178,10 +233,22 @@
     const b = {
       seg: (x1, y1, x2, y2) => add({ x1, y1, x2, y2, t: 2, e: 0.35 }),
       peg: (x, y, r) => add({ x1: x, y1: y, x2: x, y2: y, t: r, e: 0.45 }),
-      bumper: (x, y, r) => add({ x1: x, y1: y, x2: x, y2: y, t: r, e: 1.15, bumper: true }),
+      bumper: (x, y, r, force) => add({
+        x1: x, y1: y, x2: x, y2: y, t: r, e: 1.25, bumper: true, force: force || 440
+      }),
+      superBumper: (x, y, r, force) => add({
+        x1: x, y1: y, x2: x, y2: y, t: r, e: 1.6, bumper: true, super: true, force: force || 880
+      }),
       spinner: (cx, cy, half, omega) => add({
         x1: cx - half, y1: cy, x2: cx + half, y2: cy, t: 5, e: 0.5,
         moving: true, cx, cy, half, omega, angle: 0,
+      }),
+      fastSpinner: (cx, cy, half, omega) => add({
+        x1: cx - half, y1: cy, x2: cx + half, y2: cy, t: 6, e: 0.85,
+        moving: true, fast: true, cx, cy, half, omega, angle: 0,
+      }),
+      bounceWall: (x1, y1, x2, y2, force) => add({
+        x1, y1, x2, y2, t: 4, e: 1.5, bumper: true, super: true, force: force || 800
       }),
     };
 
@@ -298,7 +365,10 @@
       let e = s.e;
       if (-vn < 30) e = 0; // 떨림 방지
       let out = -e * vn;
-      if (s.bumper && -vn > 20 && out < 440) out = 440;
+      if (s.bumper && -vn > 15) {
+        const minForce = s.force || (s.super ? 850 : 440);
+        if (out < minForce) out = minForce;
+      }
       const tx = rvx - vn * nx, ty = rvy - vn * ny;
       m.vx = vsx + tx * FRICTION + nx * out;
       m.vy = vsy + ty * FRICTION + ny * out;
