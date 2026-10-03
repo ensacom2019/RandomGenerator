@@ -2,10 +2,8 @@
 (function (root) {
   "use strict";
 
-  const W = 800;            // 맵 너비
-  const H = 4750;           // 맵 높이
+  const W = 800;            // 맵 너비 (모든 맵 공통)
   const GATE_Y = 330;       // 시작 게이트(바닥) 높이
-  const FINISH_Y = 4620;    // 결승선
   const R = 10;             // 구슬 반지름
   const GRAVITY = 1100;
   const MAXV = 1100;
@@ -13,6 +11,7 @@
   const BAND = 100;         // 충돌 후보 탐색용 높이 구간
   const FRICTION = 0.9992;  // 접촉 시 접선 속도 감쇠
   const MAX_MARBLES = 300;
+  const CHUTE_L = 365, CHUTE_R = 435; // 결승 통로 좌우 벽 x
 
   // ---------- 입력 파싱: "이름/질량*개수, 이름2*3" ----------
   function parseEntries(text) {
@@ -39,55 +38,161 @@
     return out;
   }
 
-  // ---------- 맵 ----------
-  function buildMap() {
+  // ---------- 맵 정의 ----------
+  const MAPS = [
+    {
+      id: "classic",
+      name: "클래식 (밸런스)",
+      build(b) {
+        // 1) 핀 지대
+        for (let i = 0; i < 9; i++) {
+          const y = 420 + i * 60;
+          for (let x = i % 2 ? 80 : 40; x <= W - 30; x += 80) b.peg(x, y, 8);
+        }
+        // 2) 지그재그 경사로
+        for (let k = 0; k < 7; k++) {
+          const y = 1000 + k * 150;
+          if (k % 2 === 0) b.seg(0, y, 700, y + 110);
+          else b.seg(W, y, 100, y + 110);
+        }
+        // 3) 회전 막대
+        [
+          { y: 2250, xs: [100, 300, 500, 700], s: 1 },
+          { y: 2500, xs: [200, 400, 600], s: -1 },
+          { y: 2750, xs: [100, 300, 500, 700], s: 1 },
+        ].forEach((row) => row.xs.forEach((x, i) => {
+          b.spinner(x, row.y, 60, (i % 2 ? -1 : 1) * row.s * 2.2);
+        }));
+        // 4) 범퍼 지대
+        for (let r = 0; r < 5; r++) {
+          const y = 3000 + r * 90;
+          const xs = r % 2 === 0 ? [70, 200, 330, 460, 590, 720] : [135, 265, 395, 525, 655];
+          xs.forEach((x) => b.bumper(x, y, 24));
+        }
+        // 5) 두 번째 경사로
+        for (let k = 0; k < 5; k++) {
+          const y = 3550 + k * 150;
+          if (k % 2 === 0) b.seg(0, y, 700, y + 110);
+          else b.seg(W, y, 100, y + 110);
+        }
+        return 4350;
+      },
+    },
+    {
+      id: "forest",
+      name: "핀 숲 (파칭코)",
+      build(b) {
+        // 수직 직하를 막기 위해 중간중간 꺾임 선반을 두고 핀 밀도를 높임
+        let curY = 420;
+        for (let section = 0; section < 4; section++) {
+          // 핀 블록 (8줄)
+          for (let r = 0; r < 8; r++) {
+            const y = curY + r * 55;
+            const offset = (r % 2 === 0) ? 35 : 65;
+            for (let x = offset; x < W; x += 60) {
+              if ((r + section) % 3 === 0 && (x > 200 && x < 600) && x % 120 === 0) {
+                b.bumper(x, y, 16);
+              } else {
+                b.peg(x, y, 7);
+              }
+            }
+          }
+          curY += 8 * 55 + 20;
+
+          // 완충 교차 선반 (구슬을 모아서 흘림)
+          if (section % 2 === 0) {
+            b.seg(0, curY, 640, curY + 130);
+            b.seg(W, curY + 100, W - 70, curY + 120);
+          } else {
+            b.seg(W, curY, 160, curY + 130);
+            b.seg(0, curY + 100, 70, curY + 120);
+          }
+          curY += 190;
+        }
+        return curY;
+      },
+    },
+    {
+      id: "spinner",
+      name: "회전 지옥 (스피너)",
+      build(b) {
+        let curY = 440;
+        for (let tier = 0; tier < 7; tier++) {
+          // 스피너 배치 (한 줄 또는 두 줄)
+          const isEven = tier % 2 === 0;
+          const xs = isEven ? [120, 300, 500, 680] : [200, 400, 600];
+          const speed = (1.8 + (tier % 3) * 0.5) * (isEven ? 1 : -1);
+          xs.forEach((x, i) => {
+            b.spinner(x, curY + 40, 70, speed * (i % 2 === 0 ? 1 : -1));
+          });
+
+          // 아래 받침 경사로: 구슬이 스피너와 부딪히지 않고 틈새로 그냥 추락하는 것을 방지
+          const shelfY = curY + 140;
+          if (isEven) {
+            b.seg(0, shelfY, 320, shelfY + 80);
+            b.seg(W, shelfY, W - 320, shelfY + 80);
+            b.bumper(400, shelfY + 100, 22);
+          } else {
+            b.seg(W * 0.25, shelfY + 80, W * 0.75, shelfY + 80);
+            b.bumper(120, shelfY + 60, 20);
+            b.bumper(W - 120, shelfY + 60, 20);
+          }
+          curY += 270;
+        }
+        return curY + 50;
+      },
+    },
+    {
+      id: "funnel",
+      name: "다단 깔때기 (슬라이드)",
+      build(b) {
+        // 넓은 슬라이드와 좁은 깔때기 병목을 반복
+        let curY = 440;
+        for (let stage = 0; stage < 7; stage++) {
+          // 깔때기 구조: 위는 넓고 아래는 좁음
+          const chokeX = (stage % 2 === 0) ? 550 : 250;
+          const chokeY = curY + 280;
+
+          // 깔때기 벽
+          b.seg(0, curY, chokeX - 45, chokeY);
+          b.seg(W, curY, chokeX + 45, chokeY);
+
+          // 병목 통로 바로 아래에 튕김 범퍼 배치
+          b.bumper(chokeX, chokeY + 70, 20);
+
+          // 옆으로 퍼져 나가도록 분산 핀
+          b.peg(chokeX - 90, chokeY + 110, 8);
+          b.peg(chokeX + 90, chokeY + 110, 8);
+
+          curY += 380;
+        }
+        return curY;
+      },
+    },
+  ];
+
+  function buildMap(mapId) {
+    const def = MAPS.find((m) => m.id === mapId) || MAPS[0];
     const statics = [];
     const add = (o) => { statics.push(o); return o; };
-    const seg = (x1, y1, x2, y2) => add({ x1, y1, x2, y2, t: 2, e: 0.35 });
-    const peg = (x, y, r) => add({ x1: x, y1: y, x2: x, y2: y, t: r, e: 0.45 });
-    const bumper = (x, y, r) => add({ x1: x, y1: y, x2: x, y2: y, t: r, e: 1.1, bumper: true });
-    const spinner = (cx, cy, half, omega) => add({
-      x1: cx - half, y1: cy, x2: cx + half, y2: cy, t: 5, e: 0.5,
-      moving: true, cx, cy, half, omega, angle: 0,
-    });
+    const b = {
+      seg: (x1, y1, x2, y2) => add({ x1, y1, x2, y2, t: 2, e: 0.35 }),
+      peg: (x, y, r) => add({ x1: x, y1: y, x2: x, y2: y, t: r, e: 0.45 }),
+      bumper: (x, y, r) => add({ x1: x, y1: y, x2: x, y2: y, t: r, e: 1.15, bumper: true }),
+      spinner: (cx, cy, half, omega) => add({
+        x1: cx - half, y1: cy, x2: cx + half, y2: cy, t: 5, e: 0.5,
+        moving: true, cx, cy, half, omega, angle: 0,
+      }),
+    };
 
-    // 1) 핀 지대
-    for (let i = 0; i < 9; i++) {
-      const y = 420 + i * 60;
-      for (let x = i % 2 ? 80 : 40; x <= W - 30; x += 80) peg(x, y, 8);
-    }
-    // 2) 지그재그 경사로 (한쪽에 구멍)
-    for (let k = 0; k < 7; k++) {
-      const y = 1000 + k * 150;
-      if (k % 2 === 0) seg(0, y, 700, y + 110);
-      else seg(W, y, 100, y + 110);
-    }
-    // 3) 회전 막대
-    const rows = [
-      { y: 2250, xs: [100, 300, 500, 700], s: 1 },
-      { y: 2500, xs: [200, 400, 600], s: -1 },
-      { y: 2750, xs: [100, 300, 500, 700], s: 1 },
-    ];
-    rows.forEach((row) => row.xs.forEach((x, i) => {
-      spinner(x, row.y, 60, (i % 2 ? -1 : 1) * row.s * 2.2);
-    }));
-    // 4) 범퍼 지대
-    for (let r = 0; r < 5; r++) {
-      const y = 3000 + r * 90;
-      const xs = r % 2 === 0 ? [70, 200, 330, 460, 590, 720] : [135, 265, 395, 525, 655];
-      xs.forEach((x) => bumper(x, y, 24));
-    }
-    // 5) 두 번째 경사로
-    for (let k = 0; k < 5; k++) {
-      const y = 3550 + k * 150;
-      if (k % 2 === 0) seg(0, y, 700, y + 110);
-      else seg(W, y, 100, y + 110);
-    }
-    // 6) 깔때기 + 결승 통로
-    seg(0, 4350, 365, 4520);
-    seg(W, 4350, 435, 4520);
-    seg(365, 4520, 365, H);
-    seg(435, 4520, 435, H);
+    const fy = def.build(b);       // 결승 깔때기 시작 y
+    const H = fy + 400;
+    const FINISH_Y = fy + 270;
+    // 결승 깔때기 + 통로
+    b.seg(0, fy, CHUTE_L, fy + 170);
+    b.seg(W, fy, CHUTE_R, fy + 170);
+    b.seg(CHUTE_L, fy + 170, CHUTE_L, H);
+    b.seg(CHUTE_R, fy + 170, CHUTE_R, H);
 
     const gate = { x1: 0, y1: GATE_Y, x2: W, y2: GATE_Y, t: 2, e: 0.2, gate: true };
     statics.push(gate);
@@ -102,16 +207,21 @@
       s.y0 = lo; s.y1e = hi;
       const b0 = Math.max(0, Math.floor((lo - R) / BAND));
       const b1 = Math.min(bands.length - 1, Math.floor((hi + R) / BAND));
-      for (let b = b0; b <= b1; b++) bands[b].push(s);
+      for (let k = b0; k <= b1; k++) bands[k].push(s);
     });
 
-    return { W, H, GATE_Y, FINISH_Y, statics, gate, bands };
+    return {
+      id: def.id, name: def.name,
+      W, H, GATE_Y, FINISH_Y,
+      chuteL: CHUTE_L, chuteR: CHUTE_R,
+      statics, gate, bands,
+    };
   }
 
   // ---------- 월드 ----------
   function createWorld(list, opts) {
     opts = opts || {};
-    const map = buildMap();
+    const map = buildMap(opts.mapId);
     const marbles = layout(list);
     const world = {
       map,
@@ -122,12 +232,20 @@
       gateOpen: false,
       over: false,
       winner: null,
-      skills: !!opts.skills,
-      targetRank: Math.max(1, Math.min(marbles.length, opts.targetRank || 1)),
+      targetRank: 1,
       openGate() { world.gateOpen = true; },
+      setTarget,
       step,
       ranking,
     };
+    setTarget(opts.targetRank || 1);
+
+    function setTarget(rank) {
+      world.targetRank = Math.max(1, Math.min(Math.max(1, marbles.length), Math.floor(rank) || 1));
+      if (!world.winner && world.finished.length >= world.targetRank) {
+        world.winner = world.finished[world.targetRank - 1];
+      }
+    }
 
     function layout(items) {
       const cols = 35, gap = 22;
@@ -144,7 +262,7 @@
         mass: it.weight, r: R,
         x: x0 + slots[i][0] * gap + (Math.random() - 0.5) * 2,
         y: GATE_Y - R - 2 - slots[i][1] * gap,
-        vx: 0, vy: 0, glow: 0, slow: 0,
+        vx: 0, vy: 0, slow: 0,
         finished: false, rank: 0, finishTime: 0,
       }));
     }
@@ -178,9 +296,9 @@
       const vn = rvx * nx + rvy * ny;
       if (vn >= 0) return;
       let e = s.e;
-      if (-vn < 30) e = 0; // 느린 접촉은 튕기지 않게 (떨림 방지)
+      if (-vn < 30) e = 0; // 떨림 방지
       let out = -e * vn;
-      if (s.bumper && -vn > 20 && out < 420) out = 420;
+      if (s.bumper && -vn > 20 && out < 440) out = 440;
       const tx = rvx - vn * nx, ty = rvy - vn * ny;
       m.vx = vsx + tx * FRICTION + nx * out;
       m.vy = vsy + ty * FRICTION + ny * out;
@@ -261,16 +379,10 @@
       if (world.over) return;
       world.time += dt;
 
-      // 스킬(랜덤 가속) + 정체 방지
-      for (let i = 0; i < world.active.length; i++) {
-        const m = world.active[i];
-        if (m.glow > 0) m.glow -= dt;
-        if (world.skills && m.glow <= 0 && Math.random() < dt * 0.05) {
-          m.vy += 500;
-          m.vx += (Math.random() - 0.5) * 300;
-          m.glow = 0.7;
-        }
-        if (world.gateOpen) {
+      // 정체 방지: 멈춰 있는 구슬 털어주기
+      if (world.gateOpen) {
+        for (let i = 0; i < world.active.length; i++) {
+          const m = world.active[i];
           if (m.vx * m.vx + m.vy * m.vy < 400) m.slow += dt; else m.slow = 0;
           if (m.slow > 1.2) {
             m.vx += (Math.random() - 0.5) * 500;
@@ -284,7 +396,7 @@
       for (let s = 0; s < SUB; s++) substep(h);
 
       // 결승 판정
-      const arrived = world.active.filter((m) => m.y > FINISH_Y);
+      const arrived = world.active.filter((m) => m.y > map.FINISH_Y);
       if (arrived.length) {
         arrived.sort((a, b) => b.y - a.y);
         arrived.forEach((m) => {
@@ -292,12 +404,14 @@
           m.finishTime = world.time;
           world.finished.push(m);
           m.rank = world.finished.length;
-          if (!world.over && m.rank >= world.targetRank) {
-            world.over = true;
+          if (!world.winner && m.rank >= world.targetRank) {
             world.winner = m;
           }
         });
         world.active = world.active.filter((m) => !m.finished);
+        if (world.active.length === 0) {
+          world.over = true; // 모든 구슬 통과 완료!
+        }
       }
     }
 
@@ -311,7 +425,8 @@
 
   const api = {
     parseEntries, buildMap, createWorld,
-    consts: { W, H, GATE_Y, FINISH_Y, R, MAX_MARBLES },
+    maps: MAPS.map((m) => ({ id: m.id, name: m.name })),
+    consts: { W, GATE_Y, R, MAX_MARBLES },
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.PinballEngine = api;
