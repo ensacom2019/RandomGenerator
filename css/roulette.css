@@ -11,6 +11,48 @@ body {
 
 h1 { margin: 4px 0 10px; font-size: 28px; }
 
+/* 오른쪽 상단 버전 배지 */
+.app-version-badge {
+  position: fixed;
+  top: 12px;
+  right: 14px;
+  z-index: 1100;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #57606f;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid #ced6e0;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  text-decoration: none;
+  letter-spacing: 0.5px;
+  user-select: none;
+  transition: transform 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.app-version-badge:hover {
+  color: #0a7cff;
+  border-color: #0a7cff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(10, 124, 255, 0.2);
+}
+
+@media (max-width: 600px) {
+  .app-version-badge {
+    top: 8px;
+    right: 8px;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 10px;
+  }
+}
+
 /* 상단 탭 */
 .tab-bar {
   display: flex;
