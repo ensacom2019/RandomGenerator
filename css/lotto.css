@@ -1,0 +1,301 @@
+/* 번호 뽑기 (로또 구슬함) 스타일 */
+
+.lt-container {
+  max-width: 900px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+/* 상단 설정 패널 */
+.lt-config-panel {
+  background: #ffffff;
+  border: 1px solid #dcdde1;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+}
+
+.lt-config-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.lt-range-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: bold;
+  color: #2f3640;
+}
+
+.lt-range-group input[type="number"] {
+  width: 75px;
+  padding: 6px 8px;
+  font-size: 15px;
+  font-weight: bold;
+  font-family: inherit;
+  border: 2px solid #0a7cff;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.lt-range-info {
+  font-size: 13px;
+  color: #718093;
+  font-weight: normal;
+}
+
+/* 옵션 라디오 버튼 */
+.lt-mode-group {
+  display: flex;
+  gap: 20px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #353b48;
+}
+
+.lt-mode-group label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.lt-mode-group input[type="radio"] {
+  width: 17px;
+  height: 17px;
+  accent-color: #0a7cff;
+}
+
+.lt-remain-badge {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: bold;
+  color: #0a7cff;
+  background: #e8f3ff;
+  padding: 4px 10px;
+  border-radius: 12px;
+  margin-left: auto;
+}
+
+/* 캔버스 스테이지 */
+.lt-stage {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.lt-canvas {
+  width: 820px;
+  max-width: 100%;
+  height: 460px;
+  background: linear-gradient(180deg, #1b2838 0%, #0d131a 100%);
+  border: 3px solid #2f3640;
+  border-radius: 14px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  display: block;
+}
+
+/* 배출된 당첨 번호 발표 오버레이 */
+.lt-announcement {
+  position: absolute;
+  top: 18px;
+  right: 24px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 2px solid #fbc531;
+  border-radius: 12px;
+  padding: 10px 18px;
+  color: #fbc531;
+  font-size: 16px;
+  font-weight: bold;
+  box-shadow: 0 4px 20px rgba(251, 197, 49, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: opacity 0.3s;
+}
+
+.lt-announcement.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 하단 버튼 바 */
+.lt-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.lt-btn-draw {
+  padding: 12px 28px;
+  font-size: 17px;
+  font-weight: bold;
+  color: #fff;
+  background: linear-gradient(135deg, #0a7cff 0%, #0056b3 100%);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(10, 124, 255, 0.35);
+  transition: transform 0.1s, filter 0.15s;
+}
+
+.lt-btn-draw:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.lt-btn-draw:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.lt-btn-draw:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.lt-btn-sub {
+  padding: 12px 18px;
+  font-size: 15px;
+  font-weight: bold;
+  font-family: inherit;
+  color: #2f3640;
+  background: #f1f2f6;
+  border: 1px solid #ced6e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.lt-btn-sub:hover:not(:disabled) {
+  background: #dfe4ea;
+}
+
+.lt-btn-sub:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 당첨 번호 결과 트레이 */
+.lt-result-section {
+  background: #ffffff;
+  border: 1px solid #dcdde1;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+  text-align: left;
+}
+
+.lt-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lt-result-title {
+  font-size: 17px;
+  font-weight: bold;
+  color: #2f3640;
+}
+
+.lt-result-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lt-btn-sm {
+  padding: 5px 10px;
+  font-size: 13px;
+  font-weight: bold;
+  font-family: inherit;
+  border: 1px solid #dcdde1;
+  background: #f8f9fa;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.lt-btn-sm:hover:not(:disabled) {
+  background: #e9ecef;
+}
+
+/* 로또 볼 컨테이너 */
+.lt-balls-tray {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-height: 60px;
+  align-items: center;
+  padding: 12px 14px;
+  background: #f1f2f6;
+  border-radius: 10px;
+  border: 1px inset rgba(0, 0, 0, 0.08);
+}
+
+.lt-tray-empty {
+  color: #a4b0be;
+  font-size: 14px;
+  font-style: italic;
+  margin: 0 auto;
+}
+
+/* 로또 볼 (개별 공) */
+.lotto-ball {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 900;
+  font-family: "Arial Black", "Impact", sans-serif;
+  box-shadow: inset -4px -4px 8px rgba(0, 0, 0, 0.45),
+              inset 3px 3px 6px rgba(255, 255, 255, 0.7),
+              0 4px 10px rgba(0, 0, 0, 0.3);
+  position: relative;
+  flex: none;
+  animation: ballPopIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes ballPopIn {
+  0% { transform: scale(0.2) rotate(-90deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.lotto-ball-inner {
+  width: 24px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #111;
+  font-size: 13px;
+  font-weight: 900;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* 색상 테마 클래스 */
+.lotto-ball.color-yellow { background: radial-gradient(circle at 35% 35%, #ffeaa7, #fdcb6e, #d68910); }
+.lotto-ball.color-blue   { background: radial-gradient(circle at 35% 35%, #74b9ff, #0984e3, #0652dd); }
+.lotto-ball.color-red    { background: radial-gradient(circle at 35% 35%, #ff7675, #d63031, #c0392b); }
+.lotto-ball.color-gray   { background: radial-gradient(circle at 35% 35%, #dfe6e9, #b2bec3, #636e72); }
+.lotto-ball.color-green  { background: radial-gradient(circle at 35% 35%, #55efc4, #00b894, #009432); }
+.lotto-ball.color-purple { background: radial-gradient(circle at 35% 35%, #a29bfe, #6c5ce7, #4834d4); }

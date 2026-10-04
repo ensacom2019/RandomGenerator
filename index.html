@@ -6,11 +6,12 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <meta name="description" content="룰렛, 핀볼, 추첨으로 즐기는 랜덤 뽑기 생성기">
-  <title>랜덤 생성기 - 룰렛 / 핀볼 / 추첨</title>
+  <meta name="description" content="룰렛, 핀볼, 추첨, 로또 번호 뽑기로 즐기는 랜덤 뽑기 생성기">
+  <title>랜덤 생성기 - 룰렛 / 핀볼 / 추첨 / 번호 뽑기</title>
   <link rel="stylesheet" href="css/roulette.css?v=2.0">
   <link rel="stylesheet" href="css/pinball.css?v=2.0">
   <link rel="stylesheet" href="css/draw.css?v=2.0">
+  <link rel="stylesheet" href="css/lotto.css?v=2.0">
 </head>
 <body>
   <!-- 상단 탭 바 (버튼은 tabs.js 가 register 된 탭 기준으로 자동 생성) -->
@@ -99,8 +100,11 @@
   <!-- ========== 핀볼 ========== -->
   <section id="panel-pinball" class="tab-panel" role="tabpanel" hidden></section>
 
-  <!-- ========== 뽑기 ========== -->
+  <!-- ========== 추첨 ========== -->
   <section id="panel-draw" class="tab-panel" role="tabpanel" hidden></section>
+
+  <!-- ========== 번호 뽑기 (로또 구슬함) ========== -->
+  <section id="panel-lotto" class="tab-panel" role="tabpanel" hidden></section>
 
   <!--
     새 탭 추가 방법:
@@ -113,5 +117,6 @@
   <script src="js/pinball-engine.js?v=2.0"></script>
   <script src="js/pinball.js?v=2.0"></script>
   <script src="js/draw.js?v=2.0"></script>
+  <script src="js/lotto.js?v=2.0"></script>
 </body>
 </html>
