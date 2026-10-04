@@ -57,5 +57,8 @@ const TabManager = (() => {
     if (cur.def.onShow) cur.def.onShow();
   }
 
-  return { register, activate };
+  const instance = { register, activate };
+  if (typeof window !== "undefined") window.TabManager = instance;
+  return instance;
 })();
+

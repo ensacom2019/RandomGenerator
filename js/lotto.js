@@ -446,7 +446,11 @@
     // 하단 베이스 판
     ctx.fillStyle = "#2f3640";
     ctx.beginPath();
-    ctx.roundRect(chamber.x - 120, chamber.y + chamber.radius + 28, 240, 16, 6);
+    if (typeof ctx.roundRect === "function") {
+      ctx.roundRect(chamber.x - 120, chamber.y + chamber.radius + 28, 240, 16, 6);
+    } else {
+      ctx.rect(chamber.x - 120, chamber.y + chamber.radius + 28, 240, 16);
+    }
     ctx.fill();
     ctx.strokeStyle = "#dcdde1";
     ctx.lineWidth = 2;
@@ -789,13 +793,11 @@
   // ========== 초기화 및 탭 등록 ==========
   function init() {
     syncRangeAndPool(true);
-    if (!animId) {
-      animId = requestAnimationFrame(renderScene);
-    }
   }
 
-  if (window.TabManager) {
-    window.TabManager.register({
+  const tm = (typeof TabManager !== "undefined") ? TabManager : (typeof window !== "undefined" ? window.TabManager : null);
+  if (tm) {
+    tm.register({
       id: "lotto",
       label: "번호 뽑기",
       onShow() {
@@ -808,6 +810,8 @@
         }
       },
     });
+  } else {
+    console.error("TabManager를 찾을 수 없어 번호 뽑기 탭을 등록하지 못했습니다.");
   }
 
   init();
