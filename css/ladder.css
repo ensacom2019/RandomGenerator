@@ -1,0 +1,44 @@
+#panel-ladder { max-width: 1100px; margin: 0 auto; }
+.ld-intro { margin: 4px 0 18px; color: #666; font-size: 14px; }
+.ld-toolbar { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.ld-toolbar label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
+#ldCount { width: 64px; padding: 6px; border: 1px solid #aaa; border-radius: 4px; font: inherit; }
+.ld-name-input, .ld-prize-input { margin: 0 8px; width: calc(100% - 16px); min-width: 0; height: 38px; padding: 9px 5px; border: 2px solid #c1cfdf; border-radius: 7px; font: inherit; font-size: 13px; text-align: center; background: #fff; color: #253b50; }
+.ld-name-input { border-color: var(--ld-color); }
+.ld-name-input:focus, .ld-prize-input:focus { outline: 3px solid #b3d7ff; }
+.ld-options, .ld-actions { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
+.ld-options { font-size: 14px; color: #444; }
+.ld-options label { display: inline-flex; align-items: center; gap: 6px; }
+.ld-options select { padding: 5px 8px; border: 1px solid #aaa; border-radius: 4px; font: inherit; background: #fff; }
+.ld-error { color: #bb2138; margin: 10px 0; font-size: 14px; }
+.ld-status { margin: 14px 0 10px; min-height: 24px; color: #34516f; font-weight: bold; font-size: 14px; }
+.ld-board-wrap { width: fit-content; max-width: 100%; margin: 0 auto; overflow: auto; max-height: 670px; border: 1px solid #d6dfe8; border-radius: 12px; background: #fff; text-align: left; overscroll-behavior: contain; }
+.ld-board { position: relative; }
+.ld-labels { display: grid; width: 100%; }
+.ld-people { position: sticky; top: 0; z-index: 2; background: #fff; padding: 10px 0; border-bottom: 1px solid #edf0f5; }
+.ld-person { margin: 0 8px; padding: 9px 5px; min-height: 38px; border: 2px solid var(--ld-color); border-radius: 7px; background: #fff; color: #253b50; cursor: pointer; font: inherit; font-weight: bold; font-size: 13px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+.ld-person:hover:not(:disabled), .ld-person[aria-pressed="true"] { background: var(--ld-color); color: #fff; }
+.ld-person.ld-winner { color: #704700; background: #fff0b5; border-color: #d99a00; box-shadow: 0 0 0 3px rgba(232, 173, 22, .2); }
+.ld-person.ld-winner:disabled { opacity: 1; }
+.ld-winners { max-width: 800px; margin: 12px auto 16px; padding: 14px 18px; border: 1px solid #e5b747; border-radius: 10px; background: #fff4ca; color: #704700; font-size: 20px; font-weight: bold; overflow-wrap: anywhere; }
+.ld-winners[hidden] { display: none; }
+#ldCanvas { display: block; }
+.ld-outcomes { position: sticky; bottom: 0; z-index: 2; padding: 10px 0; background: #f7f9fc; border-top: 1px solid #edf0f5; }
+.ld-outcome { margin: 0 8px; padding: 10px 5px; border: 1px solid #d8e0e9; border-radius: 7px; background: #fff; min-height: 38px; font-family: inherit; font-size: 13px; font-weight: bold; text-align: center; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; cursor: text; }
+.ld-outcome.ld-revealed { border-color: #7db2e7; background: #eaf4ff; color: #125397; }
+.ld-outcome.ld-winning { border-color: #d99a00; background: #fff0b5; color: #704700; }
+.ld-table-wrap { margin: 18px 0; border: 1px solid #ddd; border-radius: 10px; padding: 16px; background: #fff; text-align: left; }
+.ld-table-wrap h2 { font-size: 17px; margin: 0 0 10px; }
+.ld-table { width: 100%; border-collapse: collapse; font-size: 14px; table-layout: fixed; }
+.ld-table th, .ld-table td { padding: 10px 12px; border-bottom: 1px solid #edf0f4; overflow-wrap: anywhere; }
+.ld-table th { background: #f7f9fc; color: #536577; }
+.ld-table tr:last-child td { border-bottom: 0; }
+.ld-table .ld-pending { color: #999; }
+.ld-table .ld-winner-row { background: #fff5d5; color: #704700; font-weight: bold; }
+.ld-board-wrap[hidden], .ld-table-wrap[hidden], .ld-error[hidden] { display: none; }
+@media (max-width: 600px) {
+  .ld-actions { gap: 8px; }
+  .ld-actions button.primary { padding: 10px 14px; }
+  .ld-board-wrap { max-height: 560px; }
+  .ld-table-wrap { padding: 12px; }
+}

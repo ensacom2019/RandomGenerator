@@ -39,6 +39,31 @@
   }
 
   // ---------- 맵 정의 ----------
+  function buildBranchingPaths(b, startY, spacing) {
+    const rail = (x1, y1, x2, y2) => {
+      const s = b.seg(x1, y1, x2, y2);
+      s.branch = true;
+    };
+    for (let tier = 0; tier < 2; tier++) {
+      const y = startY + tier * spacing;
+      // Two fork noses open three lanes, instead of sending everyone to one edge.
+      rail(240, y, 140, y + 100);
+      rail(240, y, 340, y + 100);
+      rail(560, y, 460, y + 100);
+      rail(560, y, 660, y + 100);
+      // Short side chutes collect the outer lanes; the middle lane stays direct.
+      rail(0, y + 155, 150, y + 235);
+      rail(340, y + 155, 250, y + 235);
+      rail(460, y + 155, 550, y + 235);
+      rail(W, y + 155, 650, y + 235);
+      // Split the fast central lane again and let the routes mix below the tips.
+      rail(400, y + 290, 300, y + 375);
+      rail(400, y + 290, 500, y + 375);
+      rail(0, y + 305, 130, y + 390);
+      rail(W, y + 305, 670, y + 390);
+    }
+  }
+
   const MAPS = [
     {
       id: "classic",
@@ -47,14 +72,10 @@
         // 1) 핀 지대
         for (let i = 0; i < 9; i++) {
           const y = 420 + i * 60;
-          for (let x = i % 2 ? 80 : 40; x <= W - 30; x += 80) b.peg(x, y, 8);
+          for (let x = i % 2 ? 80 : 40; x <= W - 30; x += 80) b.bumper(x, y, 8, 180, 0.65);
         }
-        // 2) 지그재그 경사로
-        for (let k = 0; k < 7; k++) {
-          const y = 1000 + k * 150;
-          if (k % 2 === 0) b.seg(0, y, 700, y + 110);
-          else b.seg(W, y, 100, y + 110);
-        }
+        // 2) 갈라지고 합쳐지는 짧은 분기 경로
+        buildBranchingPaths(b, 1000, 520);
         // 3) 회전 막대
         [
           { y: 2250, xs: [100, 300, 500, 700], s: 1 },
@@ -69,12 +90,8 @@
           const xs = r % 2 === 0 ? [70, 200, 330, 460, 590, 720] : [135, 265, 395, 525, 655];
           xs.forEach((x) => b.bumper(x, y, 24));
         }
-        // 5) 두 번째 경사로
-        for (let k = 0; k < 5; k++) {
-          const y = 3550 + k * 150;
-          if (k % 2 === 0) b.seg(0, y, 700, y + 110);
-          else b.seg(W, y, 100, y + 110);
-        }
+        // 5) 결승 직전의 두 번째 분기 경로
+        buildBranchingPaths(b, 3550, 380);
         return 4350;
       },
     },
@@ -90,11 +107,7 @@
             const y = curY + r * 55;
             const offset = (r % 2 === 0) ? 35 : 65;
             for (let x = offset; x < W; x += 60) {
-              if ((r + section) % 3 === 0 && (x > 200 && x < 600) && x % 120 === 0) {
-                b.bumper(x, y, 16);
-              } else {
-                b.peg(x, y, 7);
-              }
+              b.bumper(x, y, 7, 180, 0.65);
             }
           }
           curY += 8 * 55 + 20;
@@ -232,9 +245,9 @@
     const add = (o) => { statics.push(o); return o; };
     const b = {
       seg: (x1, y1, x2, y2) => add({ x1, y1, x2, y2, t: 2, e: 0.35 }),
-      peg: (x, y, r) => add({ x1: x, y1: y, x2: x, y2: y, t: r, e: 0.45 }),
-      bumper: (x, y, r, force) => add({
-        x1: x, y1: y, x2: x, y2: y, t: r, e: 1.25, bumper: true, force: force || 440
+      peg: (x, y, r) => add({ x1: x, y1: y, x2: x, y2: y, t: r, e: 0.65, bumper: true, force: 180 }),
+      bumper: (x, y, r, force, restitution = 1.25) => add({
+        x1: x, y1: y, x2: x, y2: y, t: r, e: restitution, bumper: true, force: force || 440
       }),
       superBumper: (x, y, r, force) => add({
         x1: x, y1: y, x2: x, y2: y, t: r, e: 1.6, bumper: true, super: true, force: force || 880
@@ -252,7 +265,24 @@
       }),
     };
 
-    const fy = def.build(b);       // 결승 깔때기 시작 y
+    const finaleY = def.build(b);
+    const fy = finaleY + 390;
+    // Cover the actual left/right drop lanes, rather than the empty center.
+    [
+      { x: 100, y: 90, half: 85, omega: 2.6, phase: -Math.PI / 6 },
+      { x: 700, y: 90, half: 85, omega: -2.6, phase: Math.PI / 6 },
+      { x: 400, y: 275, half: 75, omega: 2.2, phase: Math.PI / 2 },
+      // These two sweep close to the sloping walls where the marbles actually slide.
+      { x: 255, y: 430, half: 55, omega: 2.4, phase: Math.PI * 0.64 },
+      { x: 545, y: 430, half: 55, omega: -2.4, phase: Math.PI * 0.36 },
+    ].forEach(({ x, y, half, omega, phase }) => {
+      const bar = b.spinner(x, finaleY + y, half, omega);
+      bar.finale = true;
+      bar.angle = phase;
+      const dx = Math.cos(phase) * half, dy = Math.sin(phase) * half;
+      bar.x1 = x - dx; bar.y1 = bar.cy - dy;
+      bar.x2 = x + dx; bar.y2 = bar.cy + dy;
+    });
     const H = fy + 400;
     const FINISH_Y = fy + 270;
     // 결승 깔때기 + 통로
@@ -280,6 +310,7 @@
     return {
       id: def.id, name: def.name,
       W, H, GATE_Y, FINISH_Y,
+      finaleY, funnelY: fy,
       chuteL: CHUTE_L, chuteR: CHUTE_R,
       statics, gate, bands,
     };
@@ -329,7 +360,7 @@
         mass: it.weight, r: R,
         x: x0 + slots[i][0] * gap + (Math.random() - 0.5) * 2,
         y: GATE_Y - R - 2 - slots[i][1] * gap,
-        vx: 0, vy: 0, slow: 0,
+        vx: 0, vy: 0, slow: 0, progressY: GATE_Y - R - 2 - slots[i][1] * gap, stalled: 0,
         finished: false, rank: 0, finishTime: 0,
       }));
     }
@@ -453,6 +484,17 @@
       if (world.gateOpen) {
         for (let i = 0; i < world.active.length; i++) {
           const m = world.active[i];
+          if (m.y > m.progressY + R * 3) {
+            m.progressY = m.y;
+            m.stalled = 0;
+          } else m.stalled += dt;
+          // A ball can keep moving in a bumper orbit, so low speed alone is insufficient.
+          if (m.stalled > 8) {
+            m.vx += (m.x < W / 2 ? 1 : -1) * 220;
+            m.vy += 80;
+            m.stalled = 0;
+            m.progressY = m.y;
+          }
           if (m.vx * m.vx + m.vy * m.vy < 400) m.slow += dt; else m.slow = 0;
           if (m.slow > 1.2) {
             m.vx += (Math.random() - 0.5) * 500;

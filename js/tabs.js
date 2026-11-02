@@ -10,6 +10,8 @@ const TabManager = (() => {
   const bar = document.getElementById("tabBar");
   const tabs = new Map(); // id -> { def, button, panel }
   let activeId = null;
+  // Keep the saved tab before registering the first tab updates localStorage.
+  const initialId = savedId();
 
   function savedId() {
     try { return localStorage.getItem(STORAGE_KEY); } catch (e) { return null; }
@@ -33,7 +35,7 @@ const TabManager = (() => {
     tabs.set(def.id, { def, button, panel });
 
     // 처음 등록된 탭을 기본으로 열고, 마지막에 사용한 탭이 등록되면 그 탭으로 복원
-    if (activeId === null || def.id === savedId()) activate(def.id);
+    if (activeId === null || def.id === initialId) activate(def.id);
     else panel.hidden = true;
   }
 

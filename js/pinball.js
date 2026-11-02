@@ -262,12 +262,7 @@
     camY += (target - camY) * Math.min(1, dt * 4.5);
   }
 
-  function loop(ts) {
-    requestAnimationFrame(loop);
-    if (!visible) { lastTs = ts; return; }
-    const dt = Math.min(0.05, (ts - (lastTs || ts)) / 1000);
-    lastTs = ts;
-
+  function update(dt) {
     if (state === "running") {
       acc += dt;
       while (acc >= STEP) {
@@ -283,6 +278,14 @@
       }
     }
     if (world) updateCamera(dt);
+  }
+
+  function loop(ts) {
+    requestAnimationFrame(loop);
+    if (!visible) { lastTs = ts; return; }
+    const dt = Math.min(0.05, (ts - (lastTs || ts)) / 1000);
+    lastTs = ts;
+    update(dt);
     draw();
   }
 
@@ -319,7 +322,17 @@
       if (s.moving) {
         ctx.beginPath();
         ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2);
-        if (s.fast) {
+        if (s.finale) {
+          ctx.strokeStyle = "rgba(47, 228, 232, 0.24)";
+          ctx.lineWidth = s.t * 2 + 12; ctx.stroke();
+          ctx.strokeStyle = "#4de5e8";
+          ctx.lineWidth = s.t * 2; ctx.stroke();
+          ctx.strokeStyle = "#e5ffff";
+          ctx.lineWidth = 3; ctx.stroke();
+          ctx.beginPath(); ctx.arc(s.cx, s.cy, 9, 0, Math.PI * 2);
+          ctx.fillStyle = "#123b49"; ctx.fill();
+          ctx.lineWidth = 2; ctx.strokeStyle = "#b1ffff"; ctx.stroke();
+        } else if (s.fast) {
           ctx.strokeStyle = "rgba(255, 40, 40, 0.45)";
           ctx.lineWidth = s.t * 2 + 10; ctx.stroke();
           ctx.strokeStyle = "#ffdd33";
@@ -514,5 +527,31 @@
   });
 
   reset();
+
+  // Share the inspection/stepping hooks with the roulette tab without leaking inputs.
+  const otherRender = window.render_game_to_text;
+  const otherAdvance = window.advanceTime;
+  window.render_game_to_text = () => {
+    if (!visible) return otherRender ? otherRender() : "{}";
+    return JSON.stringify({
+      game: "pinball", state, map: world.map.id, time: world.time, cameraY: camY,
+      coordinates: "origin top-left of map; x right, y down; map width 800; viewport 1040x640 with x offset 120",
+      finaleY: world.map.finaleY, finishY: world.map.FINISH_Y,
+      branchRails: world.map.statics.filter(s => s.branch && s.y1e >= camY && s.y0 <= camY + VH)
+        .map(s => ({ x1: s.x1, y1: s.y1, x2: s.x2, y2: s.y2 })),
+      finalSpinners: world.map.statics.filter(s => s.finale).map(s => ({ x: s.cx, y: s.cy, angle: s.angle, omega: s.omega })),
+      remaining: world.active.length, finished: world.finished.length,
+      marbles: world.active.map(m => ({ id: m.id, x: m.x, y: m.y, vx: m.vx, vy: m.vy })),
+      winner: world.winner && { name: world.winner.name, rank: world.winner.rank }
+    });
+  };
+  window.advanceTime = ms => {
+    if (!visible) { if (otherAdvance) otherAdvance(ms); return; }
+    for (let remaining = ms / 1000; remaining > 1e-9; remaining -= Math.min(remaining, STEP)) {
+      update(Math.min(remaining, STEP));
+    }
+    lastTs = 0;
+    draw();
+  };
   requestAnimationFrame(loop);
 })();

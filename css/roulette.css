@@ -172,7 +172,7 @@ main {
 
 /* 항목 목록 */
 .list-wrap { width: 460px; text-align: left; }
-#list {
+#list, #dart-list {
   max-height: 520px;
   overflow-y: auto;
   background: #fff;
@@ -214,7 +214,34 @@ button.primary:hover:not(:disabled) { filter: brightness(1.1); }
 button:disabled { opacity: .4; cursor: not-allowed !important; }
 
 /* 회전 중에는 항목 편집 잠금 */
-.locked #list, .locked .toolbar { pointer-events: none; opacity: .6; }
+.tab-panel.locked .list-wrap, .tab-panel.locked .toolbar { pointer-events: none; opacity: .6; }
+
+/* 룰렛 다트: 기존 편집 화면과 같은 배치, 독립적인 진행 상태 */
+.dart-settings { display: flex; justify-content: center; align-items: center; gap: 18px; flex-wrap: wrap; margin: 16px 0 8px; }
+.dart-settings label { font-weight: bold; }
+.dart-settings input { width: 76px; padding: 7px 8px; border: 1px solid #999; border-radius: 4px; font: inherit; }
+#dart-status { color: #555; font-size: 14px; }
+.dart-help { color: #555; font-size: 14px; line-height: 1.7; margin: 8px 0 14px; }
+.dart-help kbd { padding: 2px 7px; border: 1px solid #aaa; border-radius: 4px; background: #fff; }
+#dart-wheel { touch-action: manipulation; }
+#dart-wheel.dart-ready { cursor: crosshair; }
+.dart-results { max-width: 800px; margin: 18px auto; padding: 20px; background: #fff; border: 1px solid #ddd; border-radius: 10px; text-align: left; }
+.dart-results[hidden] { display: none; }
+.dart-summary { display: flex; gap: 8px; flex-wrap: wrap; }
+.dart-summary span { padding: 7px 12px; border-radius: 16px; color: #0758b4; background: #e8f3ff; font-weight: bold; }
+.dart-results ol { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; padding: 0; list-style: none; margin-bottom: 0; }
+.dart-results li { padding: 8px; background: #f7f7f7; border-radius: 4px; }
+
+@media (max-width: 600px) {
+  .tab-bar { justify-content: flex-start; overflow-x: auto; padding-top: 24px; }
+  .tab-btn { flex-shrink: 0; padding: 10px 15px; }
+  #panel-roulette-darts .wheel-wrap { width: min(520px, 100%); height: auto; aspect-ratio: 1; }
+  #panel-roulette-darts canvas { width: 100%; height: auto; }
+  #panel-roulette-darts .list-wrap { width: 100%; }
+  #panel-roulette-darts main { gap: 18px; }
+  #panel-roulette-darts .controls { flex-wrap: wrap; }
+  #panel-roulette-darts .preset-row { flex-wrap: wrap; }
+}
 
 /* 룰렛 항목 한번에 넣기 모달 */
 .bulk-modal {

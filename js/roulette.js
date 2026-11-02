@@ -1,10 +1,31 @@
 (() => {
   "use strict";
 
-  const STORAGE_KEY = "roulette_items_v1";
+  // Build both tabs from the same editor before either one is initialized.
+  const originalPanel = document.getElementById("panel-roulette");
+  const dartPanel = originalPanel.cloneNode(true);
+  dartPanel.id = "panel-roulette-darts";
+  dartPanel.hidden = true;
+  dartPanel.querySelectorAll("[id]").forEach(el => { el.id = "dart-" + el.id; });
+  dartPanel.querySelectorAll('[name="bulkMode"]').forEach(el => { el.name = "dart-bulkMode"; });
+  dartPanel.querySelector("h1").textContent = "룰렛 다트";
+  dartPanel.querySelector(".pointer").remove();
+  dartPanel.querySelector(".controls").insertAdjacentHTML("beforebegin", `
+    <div class="dart-settings">
+      <label>다트 개수 <input id="dart-count" type="number" min="1" max="100" step="1" value="3" required></label>
+      <span id="dart-status" role="status" aria-live="polite">다트 개수를 설정하고 시작하세요.</span>
+    </div>
+    <p class="dart-help">판 안쪽을 클릭·터치해서 조준하거나, <kbd>Space</kbd>로 위쪽 조준점에 던지세요.<br>마지막 다트가 꽂히면 서서히 멈춥니다. 같은 항목에 여러 번 맞을 수 있어요.</p>`);
+  dartPanel.querySelector(".controls").insertAdjacentHTML("beforeend", '<button id="dart-throw" class="primary" type="button" disabled>다트 던지기 · Space</button>');
+  dartPanel.insertAdjacentHTML("beforeend", '<section id="dart-results" class="dart-results" aria-label="다트 결과" hidden></section>');
+  originalPanel.after(dartPanel);
+
+  function createWheel(panel, dartMode) {
+  const get = id => panel.querySelector("#" + (dartMode ? "dart-" : "") + id);
+  const STORAGE_KEY = dartMode ? "roulette_darts_items_v1" : "roulette_items_v1";
   const TWO_PI = Math.PI * 2;
-  const MAX_SPEED = 10;        // rad/s (최대 회전 속도)
-  const ACCEL = 8;             // rad/s^2 (시작 시 가속)
+  const MAX_SPEED = 20;        // rad/s (최대 회전 속도)
+  const ACCEL = 16;            // rad/s^2 (시작 시 가속)
   const STOP_TIME_MIN = 2.5;   // 정지 버튼 후 감속 시간(초) 범위
   const STOP_TIME_MAX = 4.5;
 
@@ -18,14 +39,266 @@
   let winnerIndex = -1;
 
   // ---------- 엘리먼트 ----------
-  const canvas = document.getElementById("wheel");
+  const canvas = get("wheel");
   const ctx = canvas.getContext("2d");
-  const listEl = document.getElementById("list");
-  const sumInfo = document.getElementById("sumInfo");
-  const resultEl = document.getElementById("result");
-  const btnStart = document.getElementById("btnStart");
-  const btnStop = document.getElementById("btnStop");
-  const btnInstant = document.getElementById("btnInstant");
+  const listEl = get("list");
+  const sumInfo = get("sumInfo");
+  const resultEl = get("result");
+  const btnStart = get("btnStart");
+  const btnStop = get("btnStop");
+  const btnInstant = get("btnInstant");
+
+  const FLIGHT_TIME = 0.36;
+  const IMPACT_TIME = 0.42;
+  let dartCount = 3;
+  let hits = [];
+  let flight = null;
+  let hover = null;
+  const countInput = dartMode ? panel.querySelector("#dart-count") : null;
+  const dartStatus = dartMode ? panel.querySelector("#dart-status") : null;
+  const throwButton = dartMode ? panel.querySelector("#dart-throw") : null;
+  const dartResults = dartMode ? panel.querySelector("#dart-results") : null;
+  if (dartMode) {
+    try {
+      const saved = Number(localStorage.getItem("roulette_darts_count_v1"));
+      if (Number.isInteger(saved) && saved >= 1 && saved <= 100) countInput.value = saved;
+    } catch (e) { /* storage is optional */ }
+    countInput.addEventListener("change", () => {
+      if (countInput.checkValidity()) {
+        try { localStorage.setItem("roulette_darts_count_v1", countInput.value); } catch (e) { /* optional */ }
+      }
+    });
+    btnStart.textContent = "시작!";
+    btnStop.hidden = true;
+    btnInstant.hidden = true;
+    canvas.setAttribute("aria-label", "회전하는 다트 룰렛. 판 안쪽을 클릭하거나 스페이스바로 던지세요.");
+    canvas.tabIndex = 0;
+    canvas.addEventListener("click", e => {
+      const rect = canvas.getBoundingClientRect();
+      throwDart((e.clientX - rect.left) * 520 / rect.width, (e.clientY - rect.top) * 520 / rect.height);
+    });
+    canvas.addEventListener("pointermove", e => {
+      const rect = canvas.getBoundingClientRect();
+      hover = { x: (e.clientX - rect.left) * 520 / rect.width, y: (e.clientY - rect.top) * 520 / rect.height };
+      if (!insideBoard(hover.x, hover.y)) hover = null;
+      draw();
+    });
+    canvas.addEventListener("pointerleave", () => { hover = null; draw(); });
+    throwButton.addEventListener("click", () => throwDart(260, 80));
+    document.addEventListener("keydown", e => {
+      if (e.code !== "Space" || panel.hidden || mode !== "spinning") return;
+      if (!bulkModal.hidden || !presetModal.hidden) return;
+      if (e.target.closest("input, textarea, select, [contenteditable]:not([contenteditable='false'])")) return;
+      e.preventDefault(); // Also suppress the focused button's native Space click.
+      if (!e.repeat) throwDart(260, 80);
+    });
+    window.render_game_to_text = () => JSON.stringify({
+      mode, visible: !panel.hidden, rotation, speed,
+      coordinates: "520x520; origin top-left; x right, y down; center (260,260); radius 254",
+      fixedTarget: { x: 260, y: 80 }, dartCount,
+      remaining: dartCount - hits.length - (flight ? 1 : 0),
+      flight: flight && { x: flight.x, y: flight.y, elapsed: flight.t, duration: FLIGHT_TIME },
+      hits: hits.map(h => ({ number: h.number, item: items[h.index].name, index: h.index, angle: h.angle, radius: h.radius, impactAge: h.age })),
+      items: items.map(it => ({ name: it.name, weight: it.weight }))
+    });
+    window.advanceTime = ms => {
+      for (let remaining = ms / 1000; remaining > 1e-9; remaining -= Math.min(remaining, 1 / 60)) {
+        step(Math.min(remaining, 1 / 60));
+      }
+      lastTs = 0;
+      draw();
+    };
+  }
+
+  function insideBoard(x, y) { return Math.hypot(x - 260, y - 260) < 254; }
+
+  function clearDarts() {
+    hits = [];
+    flight = null;
+    dartResults.hidden = true;
+    dartResults.replaceChildren();
+    dartStatus.textContent = "다트 개수를 설정하고 시작하세요.";
+  }
+
+  function startDarts() {
+    if (!countInput.reportValidity()) return false;
+    clearDarts();
+    dartCount = Number(countInput.value);
+    return true;
+  }
+
+  function updateDartControls() {
+    const busy = mode === "spinning" || mode === "stopping";
+    countInput.disabled = busy;
+    throwButton.disabled = mode !== "spinning" || !!flight || hits.length >= dartCount;
+    canvas.classList.toggle("dart-ready", !throwButton.disabled);
+    if (mode === "spinning") {
+      const remaining = dartCount - hits.length - (flight ? 1 : 0);
+      dartStatus.textContent = `${flight ? "다트가 날아가는 중 · " : ""}남은 다트 ${remaining} / ${dartCount}개`;
+    } else if (mode === "stopping") {
+      dartStatus.textContent = "모두 던졌어요! 룰렛이 멈추는 중…";
+    } else if (mode === "stopped") {
+      dartStatus.textContent = `다트 ${hits.length}개 투척 완료`;
+    }
+  }
+
+  function throwDart(x, y) {
+    if (panel.hidden || mode !== "spinning" || flight || hits.length >= dartCount || !insideBoard(x, y)) return;
+    flight = { x, y, t: 0, number: hits.length + 1 };
+    updateDartControls();
+  }
+
+  function updateFlight(dt) {
+    if (!flight) return;
+    flight.t += dt;
+    if (flight.t < FLIGHT_TIME - 1e-9) return;
+    // Resolve against the rotating sector at impact, then store board-local coordinates.
+    const angle = mod(Math.atan2(flight.y - 260, flight.x - 260) - rotation, TWO_PI);
+    let edge = 0;
+    const total = totalWeight();
+    let index = items.length - 1;
+    for (let i = 0; i < items.length; i++) {
+      edge += items[i].weight / total * TWO_PI;
+      if (angle < edge) { index = i; break; }
+    }
+    hits.push({ number: flight.number, index, angle, radius: Math.hypot(flight.x - 260, flight.y - 260), age: 0, tilt: flightPosition(1).tilt - rotation });
+    flight = null;
+    if (hits.length === dartCount) beginStopping();
+    else updateDartControls();
+  }
+
+  function drawDart(x, y, number, scale = 1, wobble = 0) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.rotate(wobble);
+    ctx.lineJoin = "round";
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "#182033";
+    // Needle tip stays on the exact impact point; the barrel and fins vibrate around it.
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(10, -17);
+    ctx.strokeStyle = "#172136"; ctx.lineWidth = 3; ctx.stroke();
+    ctx.strokeStyle = "#f0f6ff"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(1, -2); ctx.lineTo(10, -17); ctx.stroke();
+    const metal = ctx.createLinearGradient(8, -20, 20, -15);
+    metal.addColorStop(0, "#56637c"); metal.addColorStop(0.45, "#edf5ff"); metal.addColorStop(1, "#6c7a92");
+    ctx.fillStyle = metal; ctx.strokeStyle = "#182033"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(7, -15); ctx.lineTo(16, -32); ctx.lineTo(23, -28); ctx.lineTo(13, -11); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(19, -30); ctx.lineTo(29, -47); ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = "#ffbd32";
+    ctx.beginPath(); ctx.moveTo(24, -39); ctx.lineTo(21, -59); ctx.lineTo(38, -54); ctx.lineTo(34, -35); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#ff703e";
+    ctx.beginPath(); ctx.moveTo(29, -47); ctx.lineTo(38, -54); ctx.lineTo(34, -35); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.arc(30, -55, 9, 0, TWO_PI);
+    ctx.lineWidth = 2; ctx.fillStyle = "#fff"; ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#182033";
+    ctx.font = "bold 11px sans-serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.translate(30, -55);
+    ctx.rotate(-wobble); // Keep the numbered badge upright as the dart turns in flight.
+    ctx.fillText(number, 0, 0);
+    ctx.restore();
+  }
+
+  function flightPosition(p) {
+    const travel = p * p;
+    const arc = Math.sin(Math.PI * p);
+    return { x: 260 + (flight.x - 260) * travel - 35 * arc,
+      y: 500 + (flight.y - 500) * travel - 32 * arc,
+      tilt: Math.atan2(2 * p * (flight.y - 500) - 32 * Math.PI * Math.cos(Math.PI * p),
+        2 * p * (flight.x - 260) - 35 * Math.PI * Math.cos(Math.PI * p)) - Math.atan2(17, -10) };
+  }
+
+  function drawImpact(x, y, age) {
+    if (age >= IMPACT_TIME) return;
+    const p = age / IMPACT_TIME;
+    ctx.save();
+    ctx.globalAlpha = 1 - p;
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 3 * (1 - p) + 1;
+    ctx.beginPath(); ctx.arc(x, y, 5 + 29 * p, 0, TWO_PI); ctx.stroke();
+    for (let i = 0; i < 8; i++) {
+      const a = i * TWO_PI / 8 + 0.2;
+      const radius = 8 + 32 * p;
+      ctx.strokeStyle = i % 2 ? "#ffdc65" : "#fff";
+      ctx.beginPath();
+      ctx.moveTo(x + Math.cos(a) * radius, y + Math.sin(a) * radius);
+      ctx.lineTo(x + Math.cos(a) * (radius + 8 * (1 - p)), y + Math.sin(a) * (radius + 8 * (1 - p)));
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawDarts() {
+    function crosshair(x, y, dashed) {
+      ctx.save();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#fff";
+      ctx.shadowColor = "#111"; ctx.shadowBlur = 4;
+      if (dashed) ctx.setLineDash([4, 3]);
+      ctx.beginPath(); ctx.arc(x, y, 14, 0, TWO_PI); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(x - 21, y); ctx.lineTo(x + 21, y);
+      ctx.moveTo(x, y - 21); ctx.lineTo(x, y + 21); ctx.stroke();
+      ctx.restore();
+    }
+    if (mode !== "stopped") {
+      crosshair(260, 80, false);
+      if (hover && mode === "spinning" && !flight) crosshair(hover.x, hover.y, true);
+    }
+    hits.forEach(h => {
+      const x = 260 + Math.cos(h.angle + rotation) * h.radius;
+      const y = 260 + Math.sin(h.angle + rotation) * h.radius;
+      ctx.save();
+      ctx.fillStyle = "rgba(0,0,0,.28)";
+      ctx.beginPath(); ctx.ellipse(x + 6, y + 3, 11, 4, -0.6, 0, TWO_PI); ctx.fill();
+      ctx.restore();
+      drawImpact(x, y, h.age);
+      const vibration = Math.sin(h.age * 85) * Math.exp(-h.age * 12) * 0.22;
+      const settle = 1 - 0.12 * Math.sin(Math.min(1, h.age / 0.12) * Math.PI);
+      drawDart(x, y, h.number, settle, h.tilt + rotation + vibration);
+    });
+    if (flight) {
+      const p = Math.min(1, flight.t / FLIGHT_TIME);
+      const pos = flightPosition(p);
+      // A fading trail and shrinking silhouette convey travel from the viewer to the board.
+      ctx.save();
+      ctx.lineCap = "round";
+      for (let i = 5; i > 0; i--) {
+        const from = flightPosition(Math.max(0, p - i * 0.045));
+        const to = flightPosition(Math.max(0, p - (i - 1) * 0.045));
+        ctx.globalAlpha = (1 - i / 6) * 0.6;
+        ctx.strokeStyle = i % 2 ? "#fff4bc" : "#fff";
+        ctx.lineWidth = 2 + 4 * (1 - p);
+        ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.lineTo(to.x, to.y); ctx.stroke();
+      }
+      ctx.restore();
+      drawDart(pos.x, pos.y, flight.number, 2.3 - 1.3 * p, pos.tilt);
+    }
+  }
+
+  function showDartResults() {
+    resultEl.textContent = `🎯 다트 ${hits.length}개 결과`;
+    dartResults.replaceChildren();
+    const summary = document.createElement("div");
+    summary.className = "dart-summary";
+    const counts = new Map();
+    hits.forEach(h => counts.set(h.index, (counts.get(h.index) || 0) + 1));
+    counts.forEach((count, index) => {
+      const badge = document.createElement("span");
+      badge.textContent = `${items[index].name || `항목 ${index + 1}`} ${count}회`;
+      summary.appendChild(badge);
+    });
+    const sequence = document.createElement("ol");
+    hits.forEach(h => {
+      const row = document.createElement("li");
+      row.textContent = `${h.number}번째 다트: ${items[h.index].name || `항목 ${h.index + 1}`}`;
+      sequence.appendChild(row);
+    });
+    dartResults.append(summary, sequence);
+    dartResults.hidden = false;
+  }
 
   // 고해상도 대응
   const SIZE = 520;
@@ -161,6 +434,7 @@
     ctx.strokeStyle = "#555";
     ctx.lineWidth = 2;
     ctx.stroke();
+    if (dartMode) drawDarts();
   }
 
   // ---------- 항목 목록 UI ----------
@@ -180,6 +454,7 @@
       name.value = it.name;
       name.placeholder = `항목 ${i + 1}`;
       name.addEventListener("input", () => {
+        if (dartMode) resetResult();
         it.name = name.value;
         saveItems();
         draw();
@@ -232,6 +507,7 @@
   }
 
   function afterWeightChange() {
+    if (dartMode) resetResult();
     saveItems();
     updatePercents();
     draw();
@@ -247,7 +523,7 @@
   }
 
   // ---------- 버튼: 항목 추가/제거/리셋 ----------
-  document.getElementById("btnAdd").addEventListener("click", () => {
+  get("btnAdd").addEventListener("click", () => {
     items.push({ name: `항목 ${items.length + 1}`, color: randomColor(), weight: 1 });
     resetResult();
     saveItems();
@@ -256,12 +532,25 @@
     listEl.scrollTop = listEl.scrollHeight;
   });
 
+  // ---------- 항목 순서 섞기 ----------
+  get("btnShuffleItems").addEventListener("click", () => {
+    if (mode === "spinning" || mode === "stopping" || items.length < 2) return;
+    for (let i = items.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [items[i], items[j]] = [items[j], items[i]];
+    }
+    resetResult();
+    saveItems();
+    renderList();
+    draw();
+  });
+
   // ---------- 한번에 넣기 (쉼표/줄바꿈 구분, 동일 가중치) ----------
-  const bulkModal = document.getElementById("bulkModal");
-  const bulkInput = document.getElementById("bulkInput");
-  const btnBulk = document.getElementById("btnBulk");
-  const btnBulkCancel = document.getElementById("btnBulkCancel");
-  const btnBulkApply = document.getElementById("btnBulkApply");
+  const bulkModal = get("bulkModal");
+  const bulkInput = get("bulkInput");
+  const btnBulk = get("btnBulk");
+  const btnBulkCancel = get("btnBulkCancel");
+  const btnBulkApply = get("btnBulkApply");
 
   function openBulkModal() {
     if (mode === "spinning" || mode === "stopping") return;
@@ -298,7 +587,7 @@
       weight: 1, // 모두 같은 확률(가중치 1)
     }));
 
-    const modeChoice = document.querySelector('input[name="bulkMode"]:checked')?.value || "replace";
+    const modeChoice = panel.querySelector('input[type="radio"]:checked')?.value || "replace";
     if (modeChoice === "replace") {
       items = newItems;
     } else {
@@ -320,7 +609,7 @@
     }
   });
 
-  document.getElementById("btnRemove").addEventListener("click", () => {
+  get("btnRemove").addEventListener("click", () => {
     const checked = [...listEl.querySelectorAll('input[type="checkbox"]:checked')]
       .map((c) => Number(c.dataset.index));
     let next;
@@ -337,7 +626,7 @@
     draw();
   });
 
-  document.getElementById("btnReset").addEventListener("click", () => {
+  get("btnReset").addEventListener("click", () => {
     if (!confirm("모든 항목을 초기 상태로 되돌릴까요?")) return;
     items = defaultItems();
     rotation = 0;
@@ -348,6 +637,7 @@
   });
 
   function resetResult() {
+    if (dartMode) clearDarts();
     winnerIndex = -1;
     if (mode === "stopped") mode = "idle";
     resultEl.innerHTML = "&nbsp;";
@@ -359,11 +649,14 @@
     btnStart.disabled = busy;
     btnStop.disabled = mode !== "spinning";
     btnInstant.disabled = !busy;
-    document.body.classList.toggle("locked", busy);
+    panel.classList.toggle("locked", busy);
+    panel.querySelectorAll(".toolbar button, .preset-quick-bar button, .preset-quick-bar select, .list-wrap input, .list-wrap button").forEach(el => { el.disabled = busy; });
+    if (dartMode) updateDartControls();
   }
 
   btnStart.addEventListener("click", () => {
     if (mode === "spinning" || mode === "stopping") return;
+    if (dartMode && !startDarts()) return;
     winnerIndex = -1;
     resultEl.innerHTML = "&nbsp;";
     speed = 0;
@@ -401,20 +694,31 @@
     rotation = mod(angle, TWO_PI);
     speed = 0;
     mode = "stopped";
-    winnerIndex = indexAtPointer(rotation);
-    const w = items[winnerIndex];
-    resultEl.textContent = `🎉 결과: ${w.name || `항목 ${winnerIndex + 1}`}`;
+    if (dartMode) {
+      showDartResults();
+    } else {
+      winnerIndex = indexAtPointer(rotation);
+      const w = items[winnerIndex];
+      resultEl.textContent = `🎉 결과: ${w.name || `항목 ${winnerIndex + 1}`}`;
+    }
     updateButtons();
     draw();
   }
 
-  function frame(ts) {
-    const dt = Math.min(0.05, (ts - (lastTs || ts)) / 1000);
-    lastTs = ts;
-
+  function step(dt) {
+    if (dartMode && panel.hidden) return;
+    // Split a frame at impact so hit detection is independent of frame rate.
+    if (dartMode && flight && dt > FLIGHT_TIME - flight.t + 1e-9) {
+      const first = FLIGHT_TIME - flight.t;
+      step(first);
+      step(dt - first);
+      return;
+    }
+    if (dartMode) hits.forEach(h => { h.age = Math.min(IMPACT_TIME + 1, h.age + dt); });
     if (mode === "spinning") {
+      const accelerating = Math.min(dt, (MAX_SPEED - speed) / ACCEL);
+      rotation = mod(rotation + speed * accelerating + ACCEL * accelerating * accelerating / 2 + MAX_SPEED * (dt - accelerating), TWO_PI);
       speed = Math.min(MAX_SPEED, speed + ACCEL * dt);
-      rotation = mod(rotation + speed * dt, TWO_PI);
       draw();
     } else if (mode === "stopping") {
       stopInfo.t += dt;
@@ -427,11 +731,21 @@
         draw();
       }
     }
+    if (dartMode) {
+      updateFlight(dt);
+      draw();
+    }
+  }
+
+  function frame(ts) {
+    const dt = Math.min(0.05, (ts - (lastTs || ts)) / 1000);
+    lastTs = ts;
+    step(dt);
     requestAnimationFrame(frame);
   }
 
   // ---------- 프리셋 (1~10 슬롯) 관리 ----------
-  const PRESET_KEY = "roulette_presets_v1";
+  const PRESET_KEY = dartMode ? "roulette_darts_presets_v1" : "roulette_presets_v1";
   const PRESET_COUNT = 10;
   let presets = loadPresets();
 
@@ -465,14 +779,14 @@
     updatePresetQuickSelect();
   }
 
-  const presetQuickSelect = document.getElementById("presetQuickSelect");
-  const btnQuickLoad = document.getElementById("btnQuickLoad");
-  const btnQuickSave = document.getElementById("btnQuickSave");
-  const btnPresetManage = document.getElementById("btnPresetManage");
-  const presetModal = document.getElementById("presetModal");
-  const presetList = document.getElementById("presetList");
-  const btnPresetModalClose = document.getElementById("btnPresetModalClose");
-  const btnPresetModalOk = document.getElementById("btnPresetModalOk");
+  const presetQuickSelect = get("presetQuickSelect");
+  const btnQuickLoad = get("btnQuickLoad");
+  const btnQuickSave = get("btnQuickSave");
+  const btnPresetManage = get("btnPresetManage");
+  const presetModal = get("presetModal");
+  const presetList = get("presetList");
+  const btnPresetModalClose = get("btnPresetModalClose");
+  const btnPresetModalOk = get("btnPresetModalOk");
 
   function updatePresetQuickSelect() {
     const curVal = presetQuickSelect.value;
@@ -643,10 +957,18 @@
   });
 
   // ---------- 시작 ----------
-  TabManager.register({ id: "roulette", label: "룰렛" });
+  TabManager.register({
+    id: dartMode ? "roulette-darts" : "roulette",
+    label: dartMode ? "룰렛 다트" : "룰렛",
+    onHide() { bulkModal.hidden = true; presetModal.hidden = true; },
+    onShow() { lastTs = 0; draw(); }
+  });
   updatePresetQuickSelect();
   renderList();
   updateButtons();
   draw();
   requestAnimationFrame(frame);
+  }
+  createWheel(originalPanel, false);
+  createWheel(dartPanel, true);
 })();
